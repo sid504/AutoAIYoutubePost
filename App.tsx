@@ -336,14 +336,23 @@ const App: React.FC = () => {
                 errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("quota");
 
             if (isFatalError) {
-                console.error("FATAL: Server or API Error. Stopping retries.", errMsg);
+                // If it is a Quota error (429), we SHOULD retry after a delay
                 if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("RESOURCE_EXHAUSTED")) {
-                    setError("API quota exceeded. Try again later (free tier limit reached).");
-                } else {
-                    setError("Server error. Check Netlify function logs or API key configuration.");
+                    console.warn("Quota exceeded. Initiating 60s cooldown...");
+                    setLoadingMsg("⏳ Quota Limit Hit. Cooling down for 60s...");
+
+                    // Wait 60 seconds then retry
+                    setTimeout(() => {
+                        console.log("Cooldown complete. Retrying...");
+                        startBroadcast(useDailyNews);
+                    }, 60000);
+                    return;
                 }
+
+                console.error("FATAL: Server or API Error. Stopping retries.", errMsg);
+                setError("Server error. Check Netlify function logs or API key configuration.");
                 setStep(AppStep.DASHBOARD);
-                return; // Do NOT retry
+                return; // Do NOT retry other fatal errors
             }
 
             setError("Broadcast failed. Retrying in 10s...");
