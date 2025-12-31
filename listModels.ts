@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 async function listModels() {
-    const key = "AIzaSyBXLzqOzDmB5ALb-6FlxHWSt6Iq5T66ejs";
+    const key = process.env.GEMINI_API_KEY || "";
     const client = new GoogleGenAI({ apiKey: key });
     try {
         const response = await client.models.list();

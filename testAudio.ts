@@ -1,7 +1,7 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
 async function testAudio() {
-    const key = "AIzaSyBXLzqOzDmB5ALb-6FlxHWSt6Iq5T66ejs";
+    const key = process.env.GEMINI_API_KEY || "";
     const client = new GoogleGenAI({ apiKey: key });
     // Try different potential models or configurations
     const modelsToTest = [
