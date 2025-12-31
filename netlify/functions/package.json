@@ -1,0 +1,9 @@
+{
+    "name": "broadcast-ai-functions",
+    "version": "1.0.0",
+    "type": "module",
+    "dependencies": {
+        "@google/genai": "^1.34.0",
+        "@netlify/functions": "^2.4.0"
+    }
+}

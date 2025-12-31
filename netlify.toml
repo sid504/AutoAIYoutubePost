@@ -1,0 +1,32 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Netlify Functions configuration
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = ["node_modules/@google/genai/**"]
+
+# Environment variables for functions
+[build.environment]
+  NODE_VERSION = "18"
+
+# Local development settings
+[dev]
+  command = "npm run dev"
+  targetPort = 3000
+  port = 8888
+  autoLaunch = false
+
+# Note: Scheduled functions must be configured in Netlify UI:
+# 1. Go to your site dashboard > Functions
+# 2. Click on "scheduled-broadcast" function
+# 3. Enable "Schedule" and set cron expression: "0 */2 * * *" (every 2 hours)
+# 4. Or use an external scheduler like GitHub Actions, cron-job.org, or EasyCron
+#    to call: POST https://your-site.netlify.app/.netlify/functions/background-broadcast

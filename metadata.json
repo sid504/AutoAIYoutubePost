@@ -1,0 +1,8 @@
+
+{
+  "name": "Broadcast AI Studio",
+  "description": "Autonomous broadcast agent using Nano Banana for cinematic visuals and Gemini for scripts.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
