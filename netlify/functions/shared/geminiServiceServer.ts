@@ -228,7 +228,7 @@ export const generateAudio = async (text: string): Promise<string> => {
     return `data:audio/wav;base64,${base64Wav}`;
   } catch (error) {
     console.warn("Audio generation failed, using placeholder music fallback.");
-    return "https://cdn.pixabay.com/audio/2022/03/15/audio_73223f66c0.mp3";
+    return "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
   }
 };
 

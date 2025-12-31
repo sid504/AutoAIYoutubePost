@@ -296,7 +296,7 @@ const App: React.FC = () => {
             }
 
             // Avatar generation skipped as removed from UI
-            let finalAvatar = faceImage || "https://placeholder"; // Placeholder to satisfy type/logic if needed, but won't be drawn
+            let finalAvatar = faceImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=150&h=150&q=80"; // Valid fallback image
 
             setStep(AppStep.GENERATING_AUDIO);
             setLoadingMsg("Synthesizing Broadcast Audio...");

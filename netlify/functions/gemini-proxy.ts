@@ -84,8 +84,13 @@ export const handler: Handler = async (
         };
     } catch (error: any) {
         console.error('[gemini-proxy] Error:', error);
+
+        // Use the status code from the error if available (e.g. 429 for rate limiting)
+        const statusCode = error.status || error.code || 500;
+        const validStatusCode = (typeof statusCode === 'number' && statusCode >= 100 && statusCode < 600) ? statusCode : 500;
+
         return {
-            statusCode: 500,
+            statusCode: validStatusCode,
             headers,
             body: JSON.stringify({
                 success: false,
