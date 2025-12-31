@@ -218,8 +218,25 @@ const App: React.FC = () => {
         return () => clearInterval(interval);
     }, [isAutoEnabled]);
 
+    // Global Audio unlock
+    useEffect(() => {
+        const unlock = () => {
+            if (audioCtxRef.current?.state === 'suspended') {
+                audioCtxRef.current.resume().then(() => console.log("[AUDIO] Context Unlocked"));
+            }
+            window.removeEventListener('click', unlock);
+        };
+        window.addEventListener('click', unlock);
+        return () => window.removeEventListener('click', unlock);
+    }, []);
+
     // OAuth logic
-    const handleLinkYouTube = () => {
+    const handleLinkYouTube = async () => {
+        // Unlock AudioContext for automation
+        if (audioCtxRef.current?.state === 'suspended') {
+            await audioCtxRef.current.resume();
+        }
+
         if (tokenClientRef.current) {
             tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
         } else {
@@ -1047,6 +1064,11 @@ const App: React.FC = () => {
         if (!audioRef.current) return;
 
         try {
+            // Unlock AudioContext
+            if (audioCtxRef.current?.state === 'suspended') {
+                await audioCtxRef.current.resume();
+            }
+
             // 1. Play Audio
             await audioRef.current.play();
             setIsPlaying(true);

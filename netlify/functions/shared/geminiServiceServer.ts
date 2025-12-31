@@ -227,8 +227,8 @@ export const generateAudio = async (text: string): Promise<string> => {
     const base64Wav = btoa(String.fromCharCode(...new Uint8Array(buffer)));
     return `data:audio/wav;base64,${base64Wav}`;
   } catch (error) {
-    console.warn("Audio generation failed, using placeholder music fallback.");
-    return "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+    // Base64 for a silent WAV to bypass CORS and keep the loop alive
+    return "data:audio/wav;base64,UklGRmYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0VAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   }
 };
 
