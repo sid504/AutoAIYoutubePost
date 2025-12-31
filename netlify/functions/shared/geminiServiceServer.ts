@@ -227,8 +227,8 @@ export const generateAudio = async (text: string): Promise<string> => {
     const base64Wav = btoa(String.fromCharCode(...new Uint8Array(buffer)));
     return `data:audio/wav;base64,${base64Wav}`;
   } catch (error) {
-    // Base64 for a silent WAV to bypass CORS and keep the loop alive
-    return "data:audio/wav;base64,UklGRmYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0VAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    // Base64 for 1 second of 24kHz mono silence (WAV) to bypass CORS and keep the loop alive
+    return "data:audio/wav;base64,UklGRmYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
   }
 };
 

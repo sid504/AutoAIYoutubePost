@@ -93,6 +93,7 @@ const App: React.FC = () => {
     const [uploadErrorDetail, setUploadErrorDetail] = useState<string | null>(null); // NEW: Dedicated debug state
     const [loadingMsg, setLoadingMsg] = useState('');
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
     const [activeSegment, setActiveSegment] = useState(0);
     const activeSegmentRef = useRef(0); // Ref for recording draw loop
     const [faceImage, setFaceImage] = useState<string | null>(() => localStorage.getItem('user_face'));
@@ -220,9 +221,13 @@ const App: React.FC = () => {
 
     // Global Audio unlock
     useEffect(() => {
-        const unlock = () => {
+        const unlock = async () => {
             if (audioCtxRef.current?.state === 'suspended') {
-                audioCtxRef.current.resume().then(() => console.log("[AUDIO] Context Unlocked"));
+                await audioCtxRef.current.resume();
+                console.log("[AUDIO] Context Unlocked");
+                setIsAudioUnlocked(true);
+            } else {
+                setIsAudioUnlocked(true);
             }
             window.removeEventListener('click', unlock);
         };
@@ -1171,8 +1176,29 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                {/* 2. AUTOMATION STATUS (Main View) */}
-                {youtubeChannel && (
+                {/* 2. AUDIO ENGAGEMENT (Browser Autoplay Policy) */}
+                {youtubeChannel && !isAudioUnlocked && (
+                    <div className="p-12 border border-white/10 bg-zinc-900/50 rounded-2xl backdrop-blur-sm max-w-md w-full text-center space-y-8 animate-in zoom-in-95 duration-500 shadow-[0_0_50px_rgba(220,38,38,0.1)]">
+                        <div className="w-20 h-20 bg-red-600/20 rounded-full mx-auto flex items-center justify-center border border-red-500/30 animate-pulse">
+                            <span className="text-3xl">📡</span>
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-black mb-2 tracking-tighter">WAKE UP AGENT</h2>
+                            <p className="text-zinc-400 text-sm leading-relaxed">
+                                Browser safety requires one click to enable the high-quality recording engine.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => { }} // Unlocked via global listener
+                            className="w-full py-4 bg-white text-black font-black rounded-xl hover:bg-zinc-200 transition-all tracking-[0.2em] shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+                        >
+                            ENGAGE AUTOMATION
+                        </button>
+                    </div>
+                )}
+
+                {/* 3. AUTOMATION STATUS (Main View) */}
+                {youtubeChannel && isAudioUnlocked && (
                     <div className="relative w-full max-w-4xl aspect-video bg-black/50 border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
 
                         {/* Status Overlay */}
