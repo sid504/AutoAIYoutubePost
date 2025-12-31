@@ -125,6 +125,7 @@ const App: React.FC = () => {
     const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
     const [seoMetadata, setSeoMetadata] = useState<{ title: string; description: string } | null>(null);
     const [tickerMsg, setTickerMsg] = useState('FETCHING LATEST MARKET DATA... CRYPTO: BTC +2.4% | ETH -1.1% | AI-INDEX: +5.7% | BREAKING: NANOBANANA ENGINE UPDATED TO V4.0...');
+    const debugLogs = useDebugLogs();
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const broadcastContainerRef = useRef<HTMLDivElement | null>(null);
@@ -132,7 +133,6 @@ const App: React.FC = () => {
     const chunksRef = useRef<Blob[]>([]);
     const tokenClientRef = useRef<any>(null);
 
-    // [Step 1] Character-Weighted Sync Calculation
     // [Step 1] Character-Weighted Sync Calculation
     const segmentWeights = React.useMemo(() => {
         if (!content) return [];
@@ -376,7 +376,7 @@ const App: React.FC = () => {
     };
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const requestRef = useRef<number>();
+    const requestRef = useRef<number | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
     const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
     const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
@@ -419,13 +419,12 @@ const App: React.FC = () => {
                     const videoData = await uploadToYouTube(finalBlob, finalTitle, finalDesc, currentChannel.accessToken, finalTags, finalThumbnail);
 
                     setLastUploadedUrl(`https://youtu.be/${videoData.id}`);
-                    setLoadingMsg("✅ UPLOAD COMPLETE! Scaling next show...");
+                    setLoadingMsg("✅ UPLOAD COMPLETE! Starting next topic in 60s...");
 
                     incrementUploadCount();
 
-                    // ALWAYS loop automatically after successful upload
-                    const intervalTime = 144000000 / 10; // 2.4 hours
-                    setTimeout(() => startBroadcast(true), intervalTime);
+                    // Sequential Loop: Wait 60s (quota buffer) then start next
+                    setTimeout(() => startBroadcast(true), 60000);
                 } catch (uploadError: any) {
                     console.error("=== YOUTUBE UPLOAD FAILED ===", uploadError);
                     const detailedErr = uploadError.message || JSON.stringify(uploadError);
@@ -446,6 +445,17 @@ const App: React.FC = () => {
             }
         };
     }, [content, seoMetadata]);
+
+    // AUTO-START TRIGGER
+    useEffect(() => {
+        if (youtubeChannel && !isGeneratingRef.current && !isAutoEnabled) {
+            console.log("Channel detected. Engaging Full Automation Mode.");
+            setIsAutoEnabled(true);
+            isAutoEnabledRef.current = true;
+            // Kick off the first one
+            startBroadcast(true);
+        }
+    }, [youtubeChannel]);
 
     const startRecordingSession = async (autoUpload = false, passedContent?: GeneratedContent) => {
         console.log("=== STARTING RECORDING SESSION ===");
@@ -1091,314 +1101,130 @@ const App: React.FC = () => {
     };
 
     return (
-        <>
-            {(step === AppStep.RESULT && content) && (
-                <div className="min-h-screen bg-black flex flex-col p-4 md:p-8 animate-in fade-in duration-700">
-                    <div ref={broadcastContainerRef} className="relative aspect-video bg-zinc-950 rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl mx-auto w-full max-w-[1600px]">
-                        {content.backgroundImages.map((img, idx) => (
-                            <img
-                                key={idx}
-                                src={img}
-                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${activeSegment === idx ? 'opacity-100 animate-flow' : 'opacity-0'}`}
-                                alt=""
-                            />
-                        ))}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40"></div>
+        <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-red-900 selection:text-white overflow-hidden">
+            <DebugOverlay logs={debugLogs} state={{ step, channel: youtubeChannel, auto: isAutoEnabled }} />
 
-                        {/* Centered Headlines UI */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-12 md:p-20 pointer-events-none z-20">
-                            <div className="max-w-6xl animate-reveal-slow flex flex-col items-center text-center">
-                                {/* Text Content - Medium Size, Centered */}
-                                <div className="space-y-6">
-                                    <h1 key={activeSegment} className="text-3xl md:text-5xl lg:text-6xl font-black uppercase italic tracking-tighter leading-[1.2] text-white drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] filter brightness-110">
-                                        {content.segments[activeSegment]?.text || ""}
-                                    </h1>
-
-                                    <div className="mt-12 inline-flex items-center gap-4 px-6 py-2.5 bg-red-600/60 border border-red-500/50 text-white font-black uppercase italic text-[12px] tracking-[0.4em] rounded-full shadow-[0_0_30px_rgba(220,38,38,0.4)] backdrop-blur-xl animate-pulse">
-                                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                                        LIVE BROADCAST  •  NK AI STUDIOS
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-red-600/90 py-3 border-t border-white/20 z-30 overflow-hidden">
-                            <div className="flex items-center gap-8">
-                                <div className="bg-white text-red-600 px-4 py-1 font-black uppercase italic text-[9px] tracking-widest z-40 relative shadow-xl">
-                                    Breaking News
-                                </div>
-                                <div className="animate-ticker text-white font-black uppercase italic text-[11px] tracking-[0.2em]">
-                                    {tickerMsg}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Host Avatar REMOVED as requested */}
-
-                        {/* Fallback Play Button - Only shows if auto-play fails */}
-                        {!isPlaying && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-50 cursor-pointer" onClick={handleManualStart}>
-                                <div className="text-center animate-bounce">
-                                    <div className="p-8 bg-red-600 text-white rounded-full shadow-[0_0_50px_rgba(220,38,38,1)] mb-6 mx-auto w-40 h-40 flex items-center justify-center border-4 border-white">
-                                        <svg className="w-20 h-20 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                                    </div>
-                                    <div className="text-white font-black uppercase italic tracking-widest text-2xl drop-shadow-lg bg-black/50 px-6 py-2 rounded-xl">
-                                        Click to Start & Upload
-                                    </div>
-                                    <div className="text-red-400 font-bold uppercase text-xs mt-2 tracking-widest">
-                                        Browser blocked auto-play
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-
-                    {/* Status / Upload Feedback Bar */}
-                    <div className="mt-6 flex flex-wrap gap-4 items-center justify-between">
-                        <div className="flex gap-4 items-center">
-                            <div className="px-8 py-4 bg-zinc-900/50 text-zinc-500 font-black uppercase tracking-[0.2em] text-[8px] rounded-2xl border border-white/5">
-                                Autonomous Loop Active
-                            </div>
-
-                            {loadingMsg && (loadingMsg.includes("PUBLISHING") || loadingMsg.includes("Looping") || loadingMsg.includes("UPLOAD")) && (
-                                <div className="flex items-center gap-3 animate-pulse">
-                                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                    <span className="text-[10px] font-black uppercase text-yellow-500 tracking-widest">{loadingMsg}</span>
-                                </div>
-                            )}
-
-                            {lastUploadedUrl && (
-                                <a
-                                    href={lastUploadedUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="px-6 py-2 bg-red-600 text-white font-black uppercase text-[9px] tracking-widest rounded-full hover:bg-red-500 transition-all shadow-lg flex items-center gap-2 animate-bounce"
-                                >
-                                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" /></svg>
-                                    Watch on YouTube
-                                </a>
-                            )}
-                        </div>
-
-                        {isAutoEnabled && (
-                            <div className="text-zinc-600 text-[9px] font-black uppercase tracking-widest">
-                                NEXT SHOW: {nextBroadcastTime ? new Date(nextBroadcastTime).toLocaleTimeString() : '...'}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* NEW: Explicit Error Overlay for Debugging */}
-                    {uploadErrorDetail && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-8">
-                            <div className="bg-zinc-900 border-2 border-red-600 rounded-3xl p-8 max-w-2xl w-full shadow-[0_0_100px_rgba(220,38,38,0.5)]">
-                                <h3 className="text-2xl font-black text-red-600 uppercase italic mb-4">Upload Error Detected</h3>
-                                <div className="bg-black p-4 rounded-xl border border-white/10 overflow-auto max-h-60 mb-6">
-                                    <code className="text-red-400 font-mono text-xs break-all whitespace-pre-wrap">
-                                        {uploadErrorDetail}
-                                    </code>
-                                </div>
-                                <div className="flex justify-end gap-4">
-                                    <button
-                                        onClick={() => setUploadErrorDetail(null)}
-                                        className="px-6 py-3 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700"
-                                    >
-                                        Dismiss & Continue
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setUploadErrorDetail(null);
-                                            handleLinkYouTube(); // Retry auth
-                                        }}
-                                        className="px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-500"
-                                    >
-                                        Re-Link YouTube
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+            {/* HEADER */}
+            <div className="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10 p-4 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.8)]" />
+                    <h1 className="text-xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500">
+                        BROADCAST <span className="text-red-600">AGENT</span>
+                    </h1>
                 </div>
-            )}
-
-            {(step !== AppStep.DASHBOARD && step !== AppStep.RESULT) && (
-                <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 gap-12 text-center">
-                    <div className="relative w-40 h-40">
-                        <div className="absolute inset-0 border-8 border-white/5 rounded-full"></div>
-                        <div className="absolute inset-0 border-8 border-t-red-600 rounded-full animate-spin"></div>
-                    </div>
-                    <div className="space-y-4">
-                        <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white animate-pulse">{loadingMsg}</h2>
-                        <p className="text-zinc-700 text-[10px] font-black tracking-[0.8em] uppercase">Nano Banana Engine • YouTube Auto-Post Enabled</p>
-                    </div>
-                </div>
-            )}
-
-            {(step === AppStep.DASHBOARD) && (
-                <div className="min-h-screen bg-black text-white p-6 md:p-12 font-sans selection:bg-red-600/30">
-                    <header className="flex flex-col md:flex-row justify-between items-center mb-16 md:mb-24 gap-8">
-                        <div className="flex items-center gap-5">
-                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center transform -rotate-12 shadow-[0_0_30px_rgba(255,255,255,0.15)]">
-                                <span className="text-black font-black text-3xl">B</span>
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Broadcast Agent</h1>
-                                <span className="text-[9px] text-zinc-600 font-black uppercase tracking-[0.5em] block mt-1">NK AI STUDIOS • 4K PROFESSIONAL</span>
-                            </div>
+                {youtubeChannel && (
+                    <div className="flex items-center gap-4 text-xs font-mono text-zinc-400">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 rounded-full border border-white/5">
+                            <span className="w-2 h-2 bg-green-500 rounded-full" />
+                            <span>LINKED: {youtubeChannel.name}</span>
                         </div>
-
-                        <div className="flex items-center gap-6 bg-zinc-900/50 p-2 pr-6 rounded-full border border-white/5">
-                            {youtubeChannel ? (
-                                <div className="flex items-center gap-3">
-                                    <img src={youtubeChannel.thumbnail} className="w-10 h-10 rounded-full" alt="YT" />
-                                    <div className="text-[10px] font-black uppercase text-zinc-400">{youtubeChannel.name} <span className="text-emerald-500 text-[8px] ml-2">Linked</span></div>
-                                </div>
-                            ) : (
-                                <button onClick={handleLinkYouTube} className="px-6 py-2.5 bg-red-600 text-white font-black uppercase text-[9px] tracking-widest rounded-full hover:bg-red-500 transition-colors">
-                                    Link YouTube
-                                </button>
-                            )}
-                            <div className="w-px h-6 bg-white/10 mx-2"></div>
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <span className="text-[9px] font-black uppercase text-zinc-500">Auto Mode</span>
-                                <input
-                                    type="checkbox"
-                                    checked={isAutoEnabled}
-                                    onChange={(e) => toggleAutoMode(e.target.checked)}
-                                    className="w-4 h-4 accent-red-600"
-                                />
-                            </label>
-                            <div className="w-px h-6 bg-white/10 mx-2"></div>
-                            <div className="flex flex-col">
-                                <span className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">Daily Quota</span>
-                                <span className="text-[10px] font-black uppercase text-emerald-500">{10 - checkDailyQuota().count} / 10 Remaining</span>
-                            </div>
+                        <div className="px-3 py-1 bg-zinc-900 rounded-full border border-white/5">
+                            DAILY QUOTA: {checkDailyQuota().count}/{DAILY_UPLOAD_LIMIT}
                         </div>
-                    </header>
+                    </div>
+                )}
+            </div>
 
-                    <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
-                        <section className="lg:col-span-4 p-8 bg-zinc-900/30 border border-white/5 rounded-[3rem] space-y-10 shadow-2xl">
-                            <h3 className="text-xl font-black uppercase italic tracking-tighter text-zinc-500">1. Upload Host Face</h3>
-                            <div className="relative w-48 h-48 mx-auto">
-                                <label className="block w-full h-full bg-zinc-800 rounded-full border-4 border-white/5 overflow-hidden cursor-pointer hover:border-white/20 transition-all shadow-xl group">
-                                    {faceImage ? (
-                                        <img src={faceImage} className="w-full h-full object-cover" alt="Avatar" />
-                                    ) : (
-                                        <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 gap-2">
-                                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                                            <span className="text-[8px] font-black uppercase tracking-widest">Upload Profile</span>
-                                        </div>
-                                    )}
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleFaceUpload} />
-                                </label>
-                            </div>
-                            <p className="text-[9px] text-zinc-600 font-bold text-center leading-relaxed tracking-widest uppercase">
-                                Each broadcast is now <span className="text-zinc-400">20 minutes (4K)</span>. Quota resets daily.
-                            </p>
-                        </section>
+            {/* MAIN CONTENT CENTER */}
+            <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 pt-24">
 
-                        <section className="lg:col-span-8 p-8 bg-zinc-900/30 border border-white/5 rounded-[3rem] space-y-10 shadow-2xl">
-                            <h3 className="text-xl font-black uppercase italic tracking-tighter text-zinc-500">2. Broadcast Logic</h3>
-                            <div className="space-y-4">
-                                <textarea
-                                    value={topic}
-                                    onChange={(e) => setTopic(e.target.value)}
-                                    placeholder="Describe your broadcast topic... (e.g. 'Future of humanoid robots')"
-                                    className="w-full bg-black/40 border border-white/5 rounded-[2rem] p-8 text-xl font-bold focus:border-red-600/30 transition-all outline-none min-h-[12rem] resize-none"
-                                />
-                            </div>
+                {/* 1. SETUP SECTION (Only if not linked) */}
+                {!youtubeChannel && (
+                    <div className="p-8 border border-white/10 bg-zinc-900/50 rounded-2xl backdrop-blur-sm max-w-md w-full text-center space-y-6 animate-in slide-in-from-bottom-10 fade-in duration-500">
+                        <div className="w-16 h-16 bg-zinc-800 rounded-full mx-auto flex items-center justify-center border border-white/5">
+                            <span className="text-2xl">🔗</span>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold mb-2">Connect Studio</h2>
+                            <p className="text-zinc-400 text-sm">Link your YouTube channel to enable the Broadcast Agent.</p>
+                        </div>
+                        <button
+                            onClick={handleLinkYouTube}
+                            className="px-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-all flex items-center gap-2 mx-auto"
+                        >
+                            <span className="w-2 h-2 bg-red-600 rounded-full" />
+                            LINK YOUTUBE CHANNEL
+                        </button>
+                        {error && <div className="text-red-400 text-xs bg-red-900/20 p-3 rounded">{error}</div>}
+                    </div>
+                )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <button
-                                    onClick={() => {
-                                        if (!audioCtxRef.current) {
-                                            audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-                                        }
-                                        startBroadcast(false);
-                                    }}
-                                    className="py-5 bg-white text-black font-black rounded-3xl uppercase italic text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-30"
-                                    disabled={!topic.trim()}
-                                >
-                                    Manual Generate
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        // Unlock AudioContext logic
-                                        if (!audioCtxRef.current) {
-                                            audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-                                        }
-                                        if (audioCtxRef.current.state === 'suspended') {
-                                            audioCtxRef.current.resume();
-                                        }
+                {/* 2. AUTOMATION STATUS (Main View) */}
+                {youtubeChannel && (
+                    <div className="relative w-full max-w-4xl aspect-video bg-black/50 border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
 
-                                        if (audioRef.current) {
-                                            audioRef.current.play().then(() => {
-                                                audioRef.current?.pause();
-                                                if (audioRef.current) audioRef.current.currentTime = 0;
-                                            }).catch(e => console.log("Audio unlock failed slightly:", e));
-                                        }
+                        {/* Status Overlay */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center space-y-8 z-20">
 
-                                        startBroadcast(true);
-                                    }}
-                                    className="py-5 bg-red-600 text-white font-black rounded-3xl uppercase italic text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-3"
-                                >
-                                    <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
-                                    {youtubeChannel ? "Live Daily News" : "Generate & Auto-Publish"}
-                                </button>
-                            </div>
-
-                            {error && <p className="text-[10px] text-red-500 font-black uppercase text-center tracking-widest">{error}</p>}
-
-                            {isAutoEnabled && (
-                                <div className="p-6 bg-red-600/5 border border-red-600/20 rounded-3xl">
-                                    <p className="text-[10px] text-red-400 font-black uppercase text-center tracking-widest">
-                                        Automation Active: Next broadcast in {nextBroadcastTime ? Math.round((nextBroadcastTime - Date.now()) / 60000) : '...'} minutes.
-                                    </p>
+                            {/* ERROR DISPLAY */}
+                            {error && (
+                                <div className="max-w-xl bg-red-950/90 border border-red-500/50 p-6 rounded-xl backdrop-blur-xl">
+                                    <div className="text-red-400 font-mono text-sm mb-2">CRITICAL ALERT</div>
+                                    <div className="text-white font-bold">{error}</div>
                                 </div>
                             )}
-                        </section>
-                    </main>
 
-                    <footer className="mt-32 border-t border-white/5 py-10 text-center opacity-30">
-                        <p className="text-[9px] font-black uppercase tracking-[1.2em]">Autonomous Broadcast Studio • Powered by Gemini & Nano Banana</p>
-                    </footer>
+                            {/* LOADING/STATUS */}
+                            {!error && loadingMsg && (
+                                <div className="space-y-4 animate-in fade-in zoom-in duration-500">
+                                    <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/80 rounded-full border border-white/10">
+                                        <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                                        <span className="text-xs font-mono tracking-widest text-zinc-300">LIVE BROADCAST IN PROGRESS</span>
+                                    </div>
+                                    <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl">
+                                        {loadingMsg}
+                                    </h2>
+                                </div>
+                            )}
+
+                            {/* IDLE STATE (Should be rare due to auto loop) */}
+                            {!error && !loadingMsg && !isGeneratingRef.current && (
+                                <div className="space-y-4">
+                                    <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full mx-auto" />
+                                    <p className="text-zinc-500 font-mono text-sm">SYSTEM STANDBY - WAITING FOR SCHEDULE...</p>
+                                    <div className="text-[10px] text-zinc-600 font-black uppercase tracking-[0.5em]">
+                                        Next Show In: {60}s
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Scanlines Effect */}
+                        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+                    </div>
+                )}
+            </div>
+
+            {/* TICKER footer */}
+            <div className="fixed bottom-0 left-0 w-full bg-black border-t border-white/10 py-1 overflow-hidden z-50">
+                <div className="whitespace-nowrap animate-[marquee_20s_linear_infinite] text-xs font-mono text-zinc-500">
+                    {tickerMsg}  +++  BROADCAST_AGENT_V4.0_ONLINE  +++  AUTOMATION_LEVEL_MAX  +++  ZERO_TOUCH_PROTOCOL_ACTIVE  +++
                 </div>
-            )}
+            </div>
 
-            {/* TRULY PERSISTENT AUDIO ELEMENT */}
-            <audio
-                ref={audioRef}
-                src={content?.audioBlobUrl}
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={() => {
-                    console.log("AUDIO ENDED - STOPPING RECORDER");
-                    setIsPlaying(false);
-                    setActiveSegment(0);
-                    activeSegmentRef.current = 0;
-                    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-                        mediaRecorderRef.current.stop();
-                        // ONLY stop video tracks. Audio tracks from legacy destination node MUST persist.
-                        mediaRecorderRef.current.stream.getVideoTracks().forEach(t => {
-                            console.log(`[REC] Stopping video track: ${t.label}`);
-                            t.stop();
-                        });
-                    } else {
-                        console.warn("MediaRecorder INACTIVE. Forcing upload with collected chunks.");
-                        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-                        finalizeUploadRef.current(blob);
-                    }
-                }}
-                className="hidden"
-            />
-
-            <DebugOverlay
-                logs={useDebugLogs()}
-                state={{
-                    channel: youtubeChannel,
-                    auto: isAutoEnabled,
-                    step: step
-                }}
-            />
-        </>
+            {/* INVISIBLE PRELOAD */}
+            <div style={{ display: 'none' }}>
+                <canvas ref={canvasRef} />
+                <audio
+                    ref={audioRef}
+                    crossOrigin="anonymous"
+                    src={content?.audioBlobUrl}
+                    onEnded={() => {
+                        console.log("AUDIO ENDED - STOPPING RECORDER");
+                        setIsPlaying(false);
+                        setActiveSegment(0);
+                        activeSegmentRef.current = 0;
+                        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                            mediaRecorderRef.current.stop();
+                            mediaRecorderRef.current.stream.getVideoTracks().forEach(t => t.stop());
+                        } else {
+                            const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+                            finalizeUploadRef.current(blob);
+                        }
+                    }}
+                />
+            </div>
+        </div>
     );
 };
 
