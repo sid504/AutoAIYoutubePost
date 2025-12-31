@@ -240,12 +240,20 @@ const App: React.FC = () => {
         }
     };
 
+    const isGeneratingRef = useRef(false);
+
     const startBroadcast = async (useDailyNews: boolean) => {
+        if (isGeneratingRef.current) {
+            console.warn("Broadcast generation already in progress.");
+            return;
+        }
+
         if (!useDailyNews && !topic.trim()) {
             setError("Please enter a topic.");
             return;
         }
 
+        isGeneratingRef.current = true;
         setError(null);
         setRecordedBlob(null);
         try {
@@ -322,9 +330,11 @@ const App: React.FC = () => {
             // Auto-start recording & upload session - pass content directly to avoid stale closure
             setTimeout(() => {
                 startRecordingSession(true, generatedContent);
+                isGeneratingRef.current = false; // Reset guard after handover
             }, 1500);
 
         } catch (err: any) {
+            isGeneratingRef.current = false; // Reset guard on error
             console.error("Broadcast generation failed", err);
 
             // Check if this is a fatal error (don't retry these)
