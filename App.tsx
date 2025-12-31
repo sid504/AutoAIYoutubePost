@@ -110,6 +110,11 @@ const App: React.FC = () => {
     // Update ref whenever state changes to avoid stale closures in callbacks
     useEffect(() => {
         youtubeChannelRef.current = youtubeChannel;
+        if (youtubeChannel && !isAutoEnabled) {
+            console.log("Channel detected. Engaging Full Automation Mode.");
+            setIsAutoEnabled(true);
+            isAutoEnabledRef.current = true;
+        }
     }, [youtubeChannel]);
 
     const [isAutoEnabled, setIsAutoEnabled] = useState(false);
@@ -418,7 +423,14 @@ const App: React.FC = () => {
             console.log("[LOG] PROCESSING RECORDING... Blob Size:", finalBlob.size);
             if (finalBlob.size === 0) {
                 console.error("[ERR] Recording is empty (0 bytes). Check streams.");
-                setLoadingMsg("⚠️ RECORDING FAILED: 0 BYTES. REFRESH & RETRY.");
+                setLoadingMsg("⚠️ RECORDING FAILED: 0 BYTES. RETRYING IN 10S...");
+                isUploadingRef.current = false; // Reset for next attempt
+                setIsRecording(false);
+                setIsPlaying(false);
+
+                if (isAutoEnabledRef.current) {
+                    setTimeout(() => startBroadcast(true), 10000);
+                }
                 return;
             }
 
@@ -1026,7 +1038,7 @@ const App: React.FC = () => {
                     // THEN start recorder if audio success
                     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
                         console.log("[LOG] Audio playing, starting MediaRecorder...");
-                        mediaRecorderRef.current.start(1000);
+                        mediaRecorderRef.current.start(100);
                     }
 
                     setIsPlaying(true);
@@ -1081,7 +1093,7 @@ const App: React.FC = () => {
             // 2. Start Recorder if not started
             if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
                 console.log("[MANUAL] Starting MediaRecorder...");
-                mediaRecorderRef.current.start(1000);
+                mediaRecorderRef.current.start(100);
             }
         } catch (e) {
             console.error("Manual start failed:", e);
