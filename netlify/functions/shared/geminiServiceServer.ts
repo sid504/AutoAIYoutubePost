@@ -73,8 +73,8 @@ export const generateStructuredContent = async (topic: string, newsContext?: str
       Context: "${newsContext || "General industry update"}".
       
       TASK: Generate a professional, high-engagement news broadcast script for a "LIVE DAILY NEWS" show.
-      DURATION: The show should last between 8 to 15 minutes.
-      DYNAMIC LENGTH: Generate exactly 24 to 45 sequential segments to fill the duration.
+      DURATION: The show should last between 1 to 2 minutes.
+      DYNAMIC LENGTH: Generate exactly 3 to 5 sequential segments to fill the duration.
       
       Each segment MUST have:
       - NARRATION: Engaging script text (2-4 professional sentences).

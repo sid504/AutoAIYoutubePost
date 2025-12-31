@@ -278,9 +278,14 @@ const App: React.FC = () => {
 
             setStep(AppStep.GENERATING_VISUALS);
             setLoadingMsg("Nano Banana: Generating Scene Backgrounds...");
-            const backgroundImages = await Promise.all(
-                segments.map((s: ScriptSegment) => generateImage(`Cinematic wide shot: ${s.visualPrompt}`))
-            );
+            const backgroundImages = [];
+            for (const s of segments) {
+                // Sequential generation to avoid hitting API Rate Limits on Free Tier
+                const img = await generateImage(`Cinematic wide shot: ${s.visualPrompt}`);
+                backgroundImages.push(img);
+                // Artificial delay to be safe
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
             // Avatar generation skipped as removed from UI
             let finalAvatar = faceImage || "https://placeholder"; // Placeholder to satisfy type/logic if needed, but won't be drawn
