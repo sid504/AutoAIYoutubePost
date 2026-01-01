@@ -1,4 +1,4 @@
-declare const Buffer: { from(data: ArrayBuffer): { toString(encoding: string): string } };
+declare const Buffer: { from(data: ArrayBuffer | string, encoding?: string): { toString(encoding: string): string; length: number;[index: number]: number } };
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const TEXT_MODEL = 'gemini-2.0-flash-exp';
@@ -199,10 +199,8 @@ export const generateAudio = async (text: string): Promise<string> => {
     const base64Pcm = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!base64Pcm) throw new Error("TTS failed");
 
-    const binaryString = atob(base64Pcm);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+    const bytes = Buffer.from(base64Pcm, 'base64');
+    const len = bytes.length;
 
     const buffer = new ArrayBuffer(44 + len);
     const view = new DataView(buffer);

@@ -14,6 +14,8 @@
         "npm:@google/genai@^1.34.0",
         "npm:@netlify/functions@^2.4.0",
         "npm:@types/node@^22.14.0",
+        "npm:@types/react-dom@^19.2.3",
+        "npm:@types/react@^19.2.7",
         "npm:@vitejs/plugin-react@5",
         "npm:react-dom@^19.2.3",
         "npm:react@^19.2.3",
