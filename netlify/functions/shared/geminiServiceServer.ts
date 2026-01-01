@@ -225,7 +225,22 @@ export const generateAudio = async (text: string): Promise<string> => {
     // In serverless environment, return base64 data URL instead of Blob URL
     const base64Wav = Buffer.from(buffer).toString('base64');
     return `data:audio/wav;base64,${base64Wav}`;
-  } catch (error) {
+  } catch (error: any) {
+    try {
+      // Fallback: Google Translate TTS (Un-official, limited length)
+      const safeText = encodeURIComponent(text.substring(0, 200));
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${safeText}&tl=en&client=tw-ob`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const b64 = Buffer.from(arrayBuffer).toString('base64');
+        return `data:audio/mp3;base64,${b64}`;
+      }
+    } catch (fallbackError) {
+      console.warn("Fallback TTS failed:", fallbackError);
+    }
+
+    console.error("TTS Generation failed:", error?.message || error);
     // Base64 for 1 second of 24kHz mono silence (WAV) to bypass CORS and keep the loop alive
     // Base64 for 10 seconds of silent mono 8kHz WAV (Keep loop alive)
     return "data:audio/wav;base64,UklGRtAPAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YUAPAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=";
