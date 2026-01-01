@@ -1210,15 +1210,54 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                {/* 3. AUTOMATION STATUS (Main View) */}
+            {/* 3. AUTOMATION STATUS (Main View) */}
                 {youtubeChannel && isAudioUnlocked && (
                     <div className="relative w-full max-w-4xl aspect-video bg-black/50 border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
 
                         {/* Status Overlay */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center space-y-8 z-20">
 
+                            {/* RECORDED VIDEO PREVIEW (New Feature) */}
+                            {recordedBlob && !isRecording && !isPlaying && (
+                                <div className="absolute inset-0 z-30 bg-black flex flex-col">
+                                    <video 
+                                        src={URL.createObjectURL(recordedBlob)} 
+                                        controls 
+                                        className="w-full h-full object-contain"
+                                    />
+                                    {/* Overlay Controls for Video */}
+                                    <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent flex justify-between items-center">
+                                        <div className="text-left">
+                                            <div className="text-white font-bold text-sm">BROADCAST RECORDING</div>
+                                            <div className="text-zinc-400 text-xs">{(recordedBlob.size / 1024 / 1024).toFixed(2)} MB</div>
+                                        </div>
+                                        {uploadErrorDetail && (
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-red-400 text-xs font-mono">{uploadErrorDetail.substring(0, 40)}...</span>
+                                                <button 
+                                                    onClick={() => {
+                                                        setUploadErrorDetail(null);
+                                                        setLoadingMsg("Retrying Upload...");
+                                                        isUploadingRef.current = false; // Reset guard
+                                                        finalizeUploadRef.current(recordedBlob);
+                                                    }}
+                                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded uppercase tracking-wider transition-colors"
+                                                >
+                                                    Retry Upload
+                                                </button>
+                                            </div>
+                                        )}
+                                         {!uploadErrorDetail && loadingMsg.includes("COMPLETE") && (
+                                            <div className="px-3 py-1 bg-green-900/50 border border-green-500/30 text-green-400 text-xs rounded-full">
+                                                UPLOAD SUCCESSFUL
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* ERROR DISPLAY */}
-                            {error && (
+                            {error && !recordedBlob && (
                                 <div className="max-w-xl bg-red-950/90 border border-red-500/50 p-6 rounded-xl backdrop-blur-xl">
                                     <div className="text-red-400 font-mono text-sm mb-2">CRITICAL ALERT</div>
                                     <div className="text-white font-bold">{error}</div>
@@ -1226,7 +1265,7 @@ const App: React.FC = () => {
                             )}
 
                             {/* LOADING/STATUS */}
-                            {!error && loadingMsg && (
+                            {!error && loadingMsg && !recordedBlob && (
                                 <div className="space-y-4 animate-in fade-in zoom-in duration-500">
                                     <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/80 rounded-full border border-white/10">
                                         <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
@@ -1239,7 +1278,7 @@ const App: React.FC = () => {
                             )}
 
                             {/* IDLE STATE (Should be rare due to auto loop) */}
-                            {!error && !loadingMsg && !isGeneratingRef.current && (
+                            {!error && !loadingMsg && !isGeneratingRef.current && !recordedBlob && (
                                 <div className="space-y-4">
                                     <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full mx-auto" />
                                     <p className="text-zinc-500 font-mono text-sm">SYSTEM STANDBY - WAITING FOR SCHEDULE...</p>
