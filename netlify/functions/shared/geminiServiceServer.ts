@@ -134,8 +134,19 @@ export const generateImage = async (prompt: string): Promise<string> => {
 
     throw new Error("No image data returned from Nano Banana");
   } catch (error) {
-    // Fallback to a high-quality placeholder based on the prompt
-    return `https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1920&q=80&q=${encodeURIComponent(prompt)}`;
+    console.warn("Image generation failed/throttled. Using high-quality fallback.", error);
+    const FALLBACK_IMAGES = [
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80", // Tech Chip
+      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1920&q=80", // Matrix Code
+      "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1920&q=80", // Robot
+      "https://images.unsplash.com/photo-1531297461136-8208b50209ae?auto=format&fit=crop&w=1920&q=80", // VR
+      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80", // Earth Network
+      "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80", // Cyberpunk City
+      "https://images.unsplash.com/photo-1504384308090-c54be3855833?auto=format&fit=crop&w=1920&q=80", // Digital Waves
+      "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=1920&q=80", // AI Brain
+    ];
+    // Return a random image from the list
+    return FALLBACK_IMAGES[Math.floor(Math.random() * FALLBACK_IMAGES.length)];
   }
 };
 
