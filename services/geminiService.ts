@@ -115,18 +115,33 @@ export const uploadToYouTube = async (
   // Set Thumbnail if provided
   if (videoId && thumbnailDataUrl) {
     try {
-      const thumbResponse = await fetch(thumbnailDataUrl);
-      const blob = await thumbResponse.blob();
-      await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}`, {
+      console.log(`[YouTube] Setting thumbnail for ${videoId}...`);
+
+      // Convert Data URL to Blob handled robustly
+      const responseBlob = await fetch(thumbnailDataUrl);
+      const blob = await responseBlob.blob();
+
+      const thumbRes = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'image/jpeg'
+          // 'Content-Type': 'image/jpeg' - Let fetch set the boundary/type automatically for Blob? 
+          // Actually for raw binary in body, we should set it. 
+          // Google API expects just the binary data in the body.
+          'Content-Type': blob.type || 'image/jpeg'
         },
         body: blob
       });
+
+      if (!thumbRes.ok) {
+        const errText = await thumbRes.text();
+        console.error(`[YouTube] Thumbnail Set Failed: ${thumbRes.status}`, errText);
+      } else {
+        console.log("[YouTube] Thumbnail Set Success!");
+      }
+
     } catch (e) {
-      console.warn("Failed to set thumbnail, video remains with default.", e);
+      console.error("Failed to set thumbnail, video remains with default.", e);
     }
   }
 
