@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AppStep, GeneratedContent, ScriptSegment, YouTubeChannel } from './types';
 import { generateStructuredContent, generateImage, generateAudio, fetchDailyAINews, uploadToYouTube, generateSEOMetadata, generateYouTubeThumbnail, TOPIC_ROTATION } from './services/geminiService';
-
-const CLIENT_ID = "461089785128-58o1771s4086p7q8le71cvk2a77ipar5.apps.googleusercontent.com"; // Netlify Production Client ID
+// 1. SETUP: CLIENT_ID from Env Var (Critical for Local vs Prod split)
+const CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID || '141862474119-6tl67uk28k57f3ia4cg01q1jcbh7pfno.apps.googleusercontent.com'; // Fallback to local for dev
 
 // --- DEBUG CONSOLE COMPONENT ---
 const useDebugLogs = () => {
