@@ -633,7 +633,8 @@ const App: React.FC = () => {
                 const segmentWeight = endWeight - startWeight;
                 const progressWithinSegment = Math.min(1, Math.max(0, (totalProgress - startWeight) / segmentWeight));
 
-                // [Step 5] Transitions (Fade in/out)
+                // [Step 5] Transitions (Fade in/out) & Smoothness
+                // Use a damped progress for smoother animations
                 let globalFade = 1.0;
                 if (progressWithinSegment < 0.1) globalFade = progressWithinSegment / 0.1;
                 if (progressWithinSegment > 0.9) globalFade = (1.0 - progressWithinSegment) / 0.1;
@@ -642,31 +643,13 @@ const App: React.FC = () => {
 
                 // Sync Log (Throttled)
                 if (Math.round(animationTime * FPS) % 60 === 0) {
-                    console.log(`[DRAW] Seg: ${segIdx} | Prog: ${(progressWithinSegment * 100).toFixed(0)}% | Layout: ${layout}`);
+                   // console.log(`[DRAW] Seg: ${segIdx} | Prog: ${(progressWithinSegment * 100).toFixed(0)}%`);
                 }
 
-                // [Step 7] Temporal Glitch Logic (Year 2200 Persona)
-                let shakeX = 0; let shakeY = 0;
-                let aberration = 0;
-                let isGlitching = false;
-
-                const cycleTime = animationTime % 10;
-                // Enhanced Glitch on Cuts & Random Temporal Spikes
-                if (cycleTime < 0.6 || progressWithinSegment < 0.08 || (Math.random() > 0.99)) {
-                    isGlitching = true;
-                    const power = cycleTime < 0.6 ? (0.6 - cycleTime) : (0.08 - progressWithinSegment);
-                    shakeX = (Math.random() - 0.5) * 80 * power;
-                    shakeY = (Math.random() - 0.5) * 40 * power;
-                    aberration = 25 * power;
-                }
-
-                // [Step 4/7] Quantum Camera & 3D Parallax
-                const isCloseUp = Math.floor(animationTime / 10) % 2 === 1;
-                const zoomBase = isCloseUp ? 1.5 : 1.25;
-                const zoomFactor = zoomBase + 0.1 * Math.sin(animationTime * 0.5);
-
-                const panX = 180 * Math.sin(animationTime * 0.25) + shakeX;
-                const panY = 100 * Math.cos(animationTime * 0.3) + shakeY;
+                // [Step 4/7] Quantum Camera & 3D Parallax - Smoother movement
+                const camSpeed = 0.2; // Slower for smoothness
+                const panX = 100 * Math.sin(animationTime * camSpeed);
+                const panY = 50 * Math.cos(animationTime * camSpeed * 0.8);
 
                 ctx.fillStyle = '#020205'; // Quantum Void Black
                 ctx.fillRect(0, 0, 3840, 2160);
@@ -676,53 +659,32 @@ const App: React.FC = () => {
                 ctx.strokeStyle = 'rgba(220, 38, 38, 0.1)';
                 ctx.lineWidth = 2;
                 const gridSpace = 150;
-                const gridOff = (animationTime * 100) % gridSpace;
+                const gridOff = (animationTime * 80) % gridSpace;
                 for (let x = -gridSpace; x < 3840 + gridSpace; x += gridSpace) {
                     ctx.beginPath();
                     ctx.moveTo(x + gridOff, 0);
                     ctx.lineTo(x + gridOff + (panX * 0.5), 2160);
                     ctx.stroke();
                 }
-                for (let y = -gridSpace; y < 2160 + gridSpace; y += gridSpace) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, y + (animationTime * 50) % gridSpace);
-                    ctx.lineTo(3840, y + (animationTime * 50) % gridSpace + (panY * 0.3));
-                    ctx.stroke();
-                }
-                ctx.restore();
-
-                // [Step 7] Binary Neural Streams (Background)
-                ctx.save();
-                ctx.font = '14px monospace';
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-                for (let i = 0; i < 20; i++) {
-                    const bx = (i * 200 + animationTime * 50) % 3840;
-                    const bText = Math.random().toString(2).substring(2, 40);
-                    ctx.fillText(bText, bx, (i * 120) % 2160);
-                }
                 ctx.restore();
 
                 // [Step 8] Quantum Background Engine (Blurred Fog)
                 ctx.save();
-                ctx.globalAlpha = 0.4;
-                const currentBg = bgImages[segIdx];
+                // Ensure we draw the CORRECT image for the segment
+                const imgIdx = Math.min(segIdx, bgImages.length - 1);
+                const currentBg = bgImages[imgIdx];
+                
                 if (currentBg?.complete && currentBg.naturalWidth > 0) {
-                    ctx.drawImage(currentBg, 0, 0, 3840, 2160);
+                    // Smooth Zoom Effect
+                    const zoom = 1.05 + 0.05 * Math.sin(animationTime * 0.1); 
+                    const zw = 3840 * zoom;
+                    const zh = 2160 * zoom;
+                    const zx = (3840 - zw) / 2 + panX;
+                    const zy = (2160 - zh) / 2 + panY;
+                    
+                    ctx.globalAlpha = 0.4; // Darken for text readability
+                    ctx.drawImage(currentBg, zx, zy, zw, zh);
                 }
-                ctx.restore();
-
-                // [Step 7] DRAW ATMOSPHERIC PARTICLES (Subtle Layer)
-                ctx.save();
-                particles.forEach(p => {
-                    p.x += p.vx; p.y += p.vy;
-                    if (p.x < 0) p.x = 3840; if (p.x > 3840) p.x = 0;
-                    if (p.y < 0) p.y = 2160; if (p.y > 2160) p.y = 0;
-                    const pOsc = 0.5 + 0.5 * Math.sin(animationTime * 2 + (p.x / 100));
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity * pOsc})`;
-                    ctx.fill();
-                });
                 ctx.restore();
 
                 // [Step 8] MEDIA PORTAL (PiP Window)
@@ -730,181 +692,113 @@ const App: React.FC = () => {
                 const portalW = 1920;
                 const portalH = 1080;
                 let px = 1920 - (portalW / 2);
-                let py = 400; // Default Center top
+                let py = 450; // Adjusted down for header space
 
                 if (layout === 'SIDEBAR') {
-                    px = 150;
-                    py = 400;
+                    px = 1500; // Shifted right
+                    py = 450;
                 }
-
-                // Add virtual camera motion to portal
-                px += panX * 0.3;
-                py += panY * 0.3;
 
                 // Portal Frame (Quantum Glass)
                 ctx.fillStyle = 'rgba(0,0,0,0.8)';
                 ctx.shadowColor = 'rgba(220,38,38,0.5)';
-                ctx.shadowBlur = 100;
-                ctx.fillRect(px - 10, py - 10, portalW + 20, portalH + 20);
+                ctx.shadowBlur = 60;
+                ctx.fillRect(px, py, portalW, portalH);
 
                 // Draw Portal Content
                 if (currentBg?.complete && currentBg.naturalWidth > 0) {
-                    ctx.drawImage(currentBg, px, py, portalW, portalH);
+                     ctx.save();
+                     ctx.beginPath();
+                     ctx.rect(px, py, portalW, portalH);
+                     ctx.clip();
+                     // Inner Parallax
+                     ctx.drawImage(currentBg, px - (panX * 2), py - (panY * 2), portalW + 400, portalH + 200);
+                     ctx.restore();
                 }
 
-                // Holographic Border [Step 8]
-                ctx.strokeStyle = 'rgba(220,38,38,0.8)';
-                ctx.lineWidth = 10;
+                // Holographic Border
+                ctx.strokeStyle = 'rgba(220,38,38,0.9)';
+                ctx.lineWidth = 12;
                 ctx.strokeRect(px, py, portalW, portalH);
-
-                // Portal Scanline
-                ctx.fillStyle = 'rgba(220,38,38,0.1)';
-                const portalScan = (animationTime * 800) % portalH;
-                ctx.fillRect(px, py + portalScan, portalW, 4);
                 ctx.restore();
 
-                const sideW = 1600; // Neural Sidebar Width
-
-                // [Step 3/6/8] Glassmorphism SIDEBAR
-                if (layout === 'SIDEBAR') {
-                    ctx.save();
-                    ctx.globalAlpha = globalFade;
-
-                    // Main Glass Panel (Right side for PiP)
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-                    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-                    ctx.shadowBlur = 100;
-                    ctx.fillRect(3840 - sideW, 0, sideW, 2160);
-
-                    // Glass Accent Border (Neon)
-                    ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
-                    ctx.fillRect(3840 - sideW, 0, 8, 2160);
-
-                    // Highlights with Glow
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'top';
-                    highlights.forEach((point, i) => {
-                        const hpy = 800 + (i * 220);
-                        const pAlpha = Math.min(1, progressWithinSegment * 5 - i);
-                        if (pAlpha <= 0) return;
-
-                        ctx.save();
-                        ctx.globalAlpha = pAlpha * globalFade;
-                        ctx.fillStyle = 'rgba(220, 38, 38, 0.1)';
-                        ctx.fillRect(3840 - sideW + 100, hpy - 20, sideW - 200, 160);
-
-                        ctx.fillStyle = 'white';
-                        ctx.font = '900 italic 70px "Inter", sans-serif';
-                        ctx.shadowColor = 'red';
-                        ctx.shadowBlur = 30;
-                        ctx.fillText(`▶ ${point.toUpperCase()}`, 3840 - sideW + 150, hpy + 15);
-                        ctx.restore();
-                    });
-                    ctx.restore();
-                }
-
-                // High-quality Background Gradient (Lower half)
-                const grad = ctx.createLinearGradient(0, 1080, 0, 2160);
+                // High-quality Background Gradient (Lower half for Text)
+                const grad = ctx.createLinearGradient(0, 1200, 0, 2160);
                 grad.addColorStop(0, 'rgba(0,0,0,0)');
-                grad.addColorStop(1, 'rgba(0,0,0,0.9)');
+                grad.addColorStop(0.3, 'rgba(0,0,0,0.8)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.95)');
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, 3840, 2160);
 
-                // [Step 3/6/8] Layout-Aware Text Rendering + PiP Adjustments
+                // [Step 3/6/8] Layout-Aware Text Rendering
                 if (layout !== 'FULL_IMAGE') {
                     ctx.save();
                     ctx.globalAlpha = globalFade;
 
-                    const fullText = segment?.text?.toUpperCase() || "";
+                    const fullText = segment?.text || "";
+                    // FIX: Ensure words aren't skipped. Reveal logic was too aggressive.
                     const rawWords = fullText.split(' ');
-                    const wordCountToReveal = Math.floor(rawWords.length * progressWithinSegment) + 1;
-                    const visibleWords = rawWords.slice(0, wordCountToReveal);
+                    // Smoother reveal: 1 word every X frames or based on progress
+                    const wordCountToReveal = Math.floor(rawWords.length * Math.min(1, progressWithinSegment * 1.2)); // Reveal slightly faster than Audio
+                    const visibleWords = rawWords.slice(0, Math.max(1, wordCountToReveal));
 
-                    let line = '';
+                    // Improved wrapping logic
                     const lines: string[] = [];
-                    const maxTextWidth = layout === 'SIDEBAR' ? 1800 : 3400; // Adjusted for PiP
+                    let currentLine = '';
+                    // Wider text area, smaller font for better fit
+                    const fontSize = 100; 
+                    const maxTextWidth = 3400; 
+                    ctx.font = `900 ${fontSize}px "Inter", sans-serif`;
 
-                    ctx.font = '900 italic 110px "Inter", sans-serif';
-                    for (const word of visibleWords) {
-                        const test = line + word + ' ';
-                        if (ctx.measureText(test).width > maxTextWidth && line) {
-                            lines.push(line);
-                            line = word + ' ';
+                    visibleWords.forEach(word => {
+                        const testLine = currentLine + word + ' ';
+                        const metrics = ctx.measureText(testLine);
+                        if (metrics.width > maxTextWidth && currentLine !== '') {
+                            lines.push(currentLine);
+                            currentLine = word + ' ';
                         } else {
-                            line = test;
+                            currentLine = testLine;
                         }
-                    }
-                    lines.push(line);
-
-                    const lineHeight = 140;
-                    const totalHeight = lines.length * lineHeight;
-
-                    // Position text below Portal or Beside it [Step 8]
-                    const tx = layout === 'SIDEBAR' ? 3840 - 1500 : 1920;
-                    let ty = layout === 'SIDEBAR' ? 400 : 1600 - (totalHeight / 2);
-
-                    // [Step 6/7/8] Headline Glass Card (Temporal Aura)
-                    ctx.save();
-                    const auraGlow = 0.4 + 0.1 * Math.sin(animationTime * 5);
-                    ctx.fillStyle = `rgba(10, 10, 20, ${auraGlow})`;
-                    ctx.shadowColor = 'rgba(220, 38, 38, 0.4)';
-                    ctx.shadowBlur = 100 * auraGlow;
-                    const cardW = layout === 'SIDEBAR' ? 2000 : 3600;
-                    const cardX = layout === 'SIDEBAR' ? 3840 - sideW - 1000 : 1920 - (cardW / 2);
-                    ctx.fillRect(cardX, ty - 80, cardW, totalHeight + 160);
-
-                    // Neon Border [Step 8]
-                    ctx.fillStyle = 'rgba(220, 38, 38, 0.9)';
-                    const neonW = cardW * progressWithinSegment;
-                    ctx.fillRect(cardX, ty + totalHeight + 70, neonW, 12);
-                    ctx.restore();
-
-                    ctx.textAlign = layout === 'SIDEBAR' ? 'left' : 'center';
-                    ctx.textBaseline = 'top';
-                    ctx.fillStyle = 'white';
-
-                    lines.forEach((l, i) => {
-                        const isLastLine = i === lines.length - 1;
-                        if (isGlitching) {
-                            ctx.save(); ctx.globalAlpha = 0.3; ctx.fillStyle = '#00ffff'; ctx.fillText(l, tx + 10, ty); ctx.restore();
-                        }
-                        if (isLastLine && progressWithinSegment < 0.98) {
-                            const wordsInLine = l.trim().split(' ');
-                            const lastWord = wordsInLine[wordsInLine.length - 1];
-                            const baseText = wordsInLine.slice(0, -1).join(' ') + ' ';
-                            let scrambled = ""; for (let c = 0; c < lastWord.length; c++) scrambled += glyphs[Math.floor(Math.random() * glyphs.length)];
-                            ctx.shadowBlur = 100; ctx.shadowColor = '#ff3300';
-                            ctx.save(); ctx.translate(tx, ty); ctx.scale(1.05, 1.05);
-                            ctx.fillText((Math.random() > 0.7) ? baseText + scrambled : l, 0, 0); ctx.restore();
-                        } else {
-                            ctx.shadowBlur = 40; ctx.shadowColor = 'black';
-                            ctx.fillText(l, tx, ty);
-                        }
-                        ty += lineHeight;
                     });
+                    lines.push(currentLine);
+
+                    const lineHeight = fontSize * 1.3;
+                    const totalBlockHeight = lines.length * lineHeight;
+                    let ty = 1750 - (totalBlockHeight / 2); // Center in lower third
+
+                    // Headline Card Background
+                    ctx.fillStyle = 'rgba(10, 10, 20, 0.7)';
+                    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+                    ctx.shadowBlur = 50;
+                    ctx.fillRect(100, ty - 60, 3640, totalBlockHeight + 120);
+
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'white';
+                    ctx.shadowColor = 'black';
+                    ctx.shadowBlur = 20;
+
+                    lines.forEach((line, i) => {
+                         // Alternate color for emphasis? No, keep it clean white per user request
+                        ctx.fillText(line.trim(), 1920, ty + (i * lineHeight) + (lineHeight/2));
+                    });
+                    
                     ctx.restore();
                 }
 
-                // [Step 6] CINEMATIC OVERLAYS (Scanlines, Vignette, Noise)
+                // [Step 6] CINEMATIC OVERLAYS (Scanlines, Vignette)
                 ctx.save();
-                // 1. Digital Scanlines
-                ctx.globalAlpha = 0.08;
-                for (let i = 0; i < 2160; i += 8) {
-                    ctx.fillStyle = '#fff';
-                    ctx.fillRect(0, i, 3840, 2);
-                }
-                // 2. Heavy Vignette
-                const vignette = ctx.createRadialGradient(1920, 1080, 500, 1920, 1080, 2200);
+                // Heavy Vignette
+                const vignette = ctx.createRadialGradient(1920, 1080, 900, 1920, 1080, 2200);
                 vignette.addColorStop(0, 'rgba(0,0,0,0)');
-                vignette.addColorStop(1, 'rgba(0,0,0,0.8)');
-                ctx.globalAlpha = 0.8;
+                vignette.addColorStop(1, 'rgba(0,0,0,0.9)');
                 ctx.fillStyle = vignette;
                 ctx.fillRect(0, 0, 3840, 2160);
-                // 3. VCR Top/Bottom Bars
-                ctx.globalAlpha = 0.3;
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, 3840, 60);
-                ctx.fillRect(0, 2100, 3840, 60);
+                
+                // Subtle Noise/Scanline
+                ctx.globalAlpha = 0.05;
+                ctx.fillStyle = '#ffffff';
+                for (let y = 0; y < 2160; y+=4) ctx.fillRect(0, y, 3840, 1);
                 ctx.restore();
 
                 // Ticker with SCROLLING (Scaled 4K)
