@@ -1,4 +1,4 @@
-declare const Buffer: { from(data: ArrayBuffer | string, encoding?: string): { toString(encoding: string): string; length: number;[index: number]: number } };
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const TEXT_MODEL = 'gemini-2.0-flash-exp';
@@ -227,15 +227,32 @@ export const generateAudio = async (text: string): Promise<string> => {
     return `data:audio/wav;base64,${base64Wav}`;
   } catch (error: any) {
     try {
-      // Fallback: Google Translate TTS (Un-official, limited length)
-      const safeText = encodeURIComponent(text.substring(0, 200));
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${safeText}&tl=en&client=tw-ob`;
-      const res = await fetch(url);
-      if (res.ok) {
+      // Fallback: Google Translate TTS (Un-official, limited length per request)
+      // We must chunk the text to bypass the ~200 char limit
+      // Simple chunking by sentence or length
+      const chunks = text.match(/.{1,180}(?:\s|$)/g) || [text];
+
+      console.log(`[TTS Fallback] Chunking text into ${chunks.length} parts`);
+
+      const audioBuffers: Buffer[] = [];
+
+      for (const chunk of chunks) {
+        if (!chunk.trim()) continue;
+        const safeText = encodeURIComponent(chunk.trim());
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${safeText}&tl=en&client=tw-ob`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Google TTS failed for chunk: ${res.status}`);
         const arrayBuffer = await res.arrayBuffer();
-        const b64 = Buffer.from(arrayBuffer).toString('base64');
-        return `data:audio/mp3;base64,${b64}`;
+        audioBuffers.push(Buffer.from(arrayBuffer));
       }
+
+      if (audioBuffers.length === 0) throw new Error("No audio generated from chunks");
+
+      // Concatenate all MP3 buffers
+      const combinedBuffer = Buffer.concat(audioBuffers);
+      const b64 = combinedBuffer.toString('base64');
+      return `data:audio/mp3;base64,${b64}`;
+
     } catch (fallbackError) {
       console.warn("Fallback TTS failed:", fallbackError);
     }
