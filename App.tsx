@@ -1211,15 +1211,23 @@ const App: React.FC = () => {
                 )}
 
             {/* 3. AUTOMATION STATUS (Main View) */}
+            {/* 3. AUTOMATION STATUS (Main View) */}
                 {youtubeChannel && isAudioUnlocked && (
                     <div className="relative w-full max-w-4xl aspect-video bg-black/50 border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
+                        {/* LIVE CANVAS RENDERER */}
+                        <canvas 
+                            ref={canvasRef}
+                            width={3840}
+                            height={2160}
+                            className="absolute inset-0 w-full h-full object-contain z-0 bg-black"
+                        />
 
                         {/* Status Overlay */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center space-y-8 z-20">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center space-y-8 z-20 pointer-events-none">
 
-                            {/* RECORDED VIDEO PREVIEW (New Feature) */}
+                            {/* RECORDED VIDEO PREVIEW */}
                             {recordedBlob && !isRecording && !isPlaying && (
-                                <div className="absolute inset-0 z-30 bg-black flex flex-col">
+                                <div className="absolute inset-0 z-30 bg-black flex flex-col pointer-events-auto">
                                     <video 
                                         src={URL.createObjectURL(recordedBlob)} 
                                         controls 
@@ -1258,7 +1266,7 @@ const App: React.FC = () => {
 
                             {/* ERROR DISPLAY */}
                             {error && !recordedBlob && (
-                                <div className="max-w-xl bg-red-950/90 border border-red-500/50 p-6 rounded-xl backdrop-blur-xl">
+                                <div className="max-w-xl bg-red-950/90 border border-red-500/50 p-6 rounded-xl backdrop-blur-xl pointer-events-auto">
                                     <div className="text-red-400 font-mono text-sm mb-2">CRITICAL ALERT</div>
                                     <div className="text-white font-bold">{error}</div>
                                 </div>
@@ -1266,18 +1274,27 @@ const App: React.FC = () => {
 
                             {/* LOADING/STATUS */}
                             {!error && loadingMsg && !recordedBlob && (
-                                <div className="space-y-4 animate-in fade-in zoom-in duration-500">
-                                    <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/80 rounded-full border border-white/10">
-                                        <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
-                                        <span className="text-xs font-mono tracking-widest text-zinc-300">LIVE BROADCAST IN PROGRESS</span>
+                                isPlaying ? (
+                                    /* MINIMAL LIVE BADGE (When showing canvas) */
+                                    <div className="absolute top-6 right-6 flex items-center gap-2 px-3 py-1 bg-red-600/90 text-white rounded-full text-xs font-bold shadow-[0_0_15px_rgba(220,38,38,0.6)] animate-pulse">
+                                        <span className="w-2 h-2 bg-white rounded-full" />
+                                        <span>LIVE</span>
                                     </div>
-                                    <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl">
-                                        {loadingMsg}
-                                    </h2>
-                                </div>
+                                ) : (
+                                    /* FULL SCREEN LOADER (When generating) */
+                                    <div className="space-y-4 animate-in fade-in zoom-in duration-500 bg-black/40 p-8 rounded-2xl backdrop-blur-sm">
+                                        <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-zinc-900/80 rounded-full border border-white/10">
+                                            <span className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                                            <span className="text-xs font-mono tracking-widest text-zinc-300">SYSTEM PROCESSING</span>
+                                        </div>
+                                        <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl">
+                                            {loadingMsg}
+                                        </h2>
+                                    </div>
+                                )
                             )}
 
-                            {/* IDLE STATE (Should be rare due to auto loop) */}
+                            {/* IDLE STATE */}
                             {!error && !loadingMsg && !isGeneratingRef.current && !recordedBlob && (
                                 <div className="space-y-4">
                                     <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full mx-auto" />
@@ -1302,9 +1319,8 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* INVISIBLE PRELOAD */}
+            {/* INVISIBLE PRELOAD (Audio Only - Canvas moved) */}
             <div style={{ display: 'none' }}>
-                <canvas ref={canvasRef} />
                 <audio
                     ref={audioRef}
                     crossOrigin="anonymous"
