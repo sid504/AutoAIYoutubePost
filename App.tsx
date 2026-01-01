@@ -160,8 +160,8 @@ const App: React.FC = () => {
                     callback: async (response: any) => {
                         console.log("[OAUTH] Response Received:", response);
                         if (response.error) {
-                            console.error("[OAUTH] Error:", response.error, response.error_description);
-                            setError(`YouTube link failed: ${response.error}. Check browser console for details.`);
+                            console.error("[OAUTH] Error:", response.error, response.error_description, response);
+                            setError(`YouTube Login Failed: ${response.error_description || response.error}. Please check console.`);
                             return;
                         }
                         await fetchChannelInfo(response.access_token);
