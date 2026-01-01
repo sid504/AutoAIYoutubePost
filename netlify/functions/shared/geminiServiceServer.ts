@@ -182,10 +182,14 @@ export const generateSEOMetadata = async (script: string, topic: string) => {
 
 export const generateYouTubeThumbnail = async (topic: string, title: string): Promise<string> => {
   try {
-    const prompt = `Premium, 4K YouTube Thumbnail for "${title}". Topic: ${topic}. 
-    Style: Viral cinematic news aesthetic, vibrant high-contrast colors, professional studio lighting.
-    Content: Futuristic technology and media elements, digital energy, sharp focus.
-    Ensure a clean areas for text overlay. Avoid generating garbled text in the image.`;
+    const prompt = `Create a VIRAL, CLICKBAIT YouTube Thumbnail for: "${title}". Topic: ${topic}.
+    Style: High-Contrast, "MrBeast" or Top Tech YouTuber style. Bright Neon or Vivid Colors (Yellow/Red/Cyan).
+    Key Elements:
+    1. EXTREME CLOSE-UP of a shocked/excited futuristic robot or human face (Expressive!).
+    2. BIG BOLD TEXT overlay (max 3 words) like "IT'S OVER", "HUGE UPDATE", "AI SHOCK", or "100X".
+    3. Dramatic lighting, glowing edges, high saturation.
+    4. An arrow pointing to something important or a red circle (classic clickbait tropes).
+    COMPOSITION: Rule of thirds. Subject on right, Text on left. Clean, readable, explosive energy.`;
 
     return await generateImage(prompt);
   } catch (error) {
