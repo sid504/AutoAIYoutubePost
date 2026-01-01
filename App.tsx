@@ -1034,6 +1034,7 @@ const App: React.FC = () => {
 
                     // CRITICAL: Play audio FIRST
                     await audioRef.current.play();
+                    setLoadingMsg("🔴 ON AIR - AUTOMATION ACTIVE");
 
                     // THEN start recorder if audio success
                     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
