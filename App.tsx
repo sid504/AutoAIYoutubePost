@@ -1244,6 +1244,19 @@ const App: React.FC = () => {
                                                 <span className="text-red-400 text-xs font-mono">{uploadErrorDetail.substring(0, 40)}...</span>
                                                 <button 
                                                     onClick={() => {
+                                                        const a = document.createElement('a');
+                                                        a.href = URL.createObjectURL(recordedBlob);
+                                                        a.download = `broadcast_${new Date().toISOString().slice(0,10)}.webm`;
+                                                        document.body.appendChild(a);
+                                                        a.click();
+                                                        document.body.removeChild(a);
+                                                    }}
+                                                    className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-bold rounded uppercase tracking-wider transition-colors border border-white/10"
+                                                >
+                                                    Download
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
                                                         setUploadErrorDetail(null);
                                                         setLoadingMsg("Retrying Upload...");
                                                         isUploadingRef.current = false; // Reset guard
