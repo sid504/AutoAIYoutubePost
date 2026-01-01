@@ -1,3 +1,4 @@
+declare const Buffer: { from(data: ArrayBuffer): { toString(encoding: string): string } };
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const TEXT_MODEL = 'gemini-2.0-flash-exp';
@@ -224,7 +225,7 @@ export const generateAudio = async (text: string): Promise<string> => {
     for (let i = 0; i < len; i++) view.setUint8(44 + i, bytes[i]);
 
     // In serverless environment, return base64 data URL instead of Blob URL
-    const base64Wav = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const base64Wav = Buffer.from(buffer).toString('base64');
     return `data:audio/wav;base64,${base64Wav}`;
   } catch (error) {
     // Base64 for 1 second of 24kHz mono silence (WAV) to bypass CORS and keep the loop alive
